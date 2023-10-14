@@ -16,22 +16,22 @@ namespace DesafioDotNetBaltaIO.Infrastructure.Repositories
 
         public async Task<IEnumerable<Location>> GetLocationsAsync()
         {
-            return await _dbContext.Locations.ToListAsync();
+            return await _dbContext.Ibge.ToListAsync();
         }
 
         public async Task<Location?> GetByCityAsync(string city)
         {
-            return await _dbContext.Locations.FirstOrDefaultAsync(x => x.City == city);
+            return await _dbContext.Ibge.FirstOrDefaultAsync(x => x.City == city);
         }
 
         public async Task<Location?> GetByStateAsync(string state)
         {
-            return await _dbContext.Locations.FirstOrDefaultAsync(x => x.State == state);
+            return await _dbContext.Ibge.FirstOrDefaultAsync(x => x.State == state);
         }
 
         public async Task<Location?> GetByIbgeAsync(string ibge)
         {
-            return await _dbContext.Locations.FirstOrDefaultAsync(x => x.Id == ibge);
+            return await _dbContext.Ibge.FirstOrDefaultAsync(x => x.Id == ibge);
         }
     }
 }

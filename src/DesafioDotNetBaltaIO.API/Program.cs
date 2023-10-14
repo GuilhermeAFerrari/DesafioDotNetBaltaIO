@@ -1,7 +1,10 @@
 using DesafioDotNetBaltaIO.Application.Interfaces;
+using DesafioDotNetBaltaIO.Application.Mappings;
 using DesafioDotNetBaltaIO.Application.Services;
 using DesafioDotNetBaltaIO.Domain.Entities;
+using DesafioDotNetBaltaIO.Domain.Interfaces;
 using DesafioDotNetBaltaIO.Infrastructure.Context;
+using DesafioDotNetBaltaIO.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -46,7 +49,11 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Dependency Injection
+builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<ILocationService, LocationService>();
+
+// Configure AutoMapper
+builder.Services.AddAutoMapper(typeof(LocationMappingProfile));
 
 //TODO: Configure context
 builder.Services.AddDbContext<DesafioDotNetBaltaIOContext>(options =>
@@ -163,13 +170,8 @@ void MapActionsLogin(WebApplication app)
 void MapActionsLocations(WebApplication app)
 {
 
-    app.MapGet("/locations", async (
-            Guid id, ILocationService service) =>
-
-            await service.GetLocationsAsync()
-                is Location location
-                    ? Results.Ok(location)
-                    : Results.NotFound())
+    app.MapGet("/locations", async (ILocationService service) =>
+            await service.GetLocationsAsync())                
             .Produces<Location>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetLocations")
