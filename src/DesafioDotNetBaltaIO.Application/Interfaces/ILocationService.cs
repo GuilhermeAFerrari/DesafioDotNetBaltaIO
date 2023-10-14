@@ -4,12 +4,12 @@ namespace DesafioDotNetBaltaIO.Application.Interfaces
 {
     public interface ILocationService
     {
-        Task<IEnumerable<LocationDTO>> GetLocationsAsync();
-        Task<LocationDTO> GetLocationByCityAsync(string city);
-        Task<LocationDTO> GetLocationByStateAsync(string state);
-        Task<LocationDTO> GetLocationByIbgeAsync(string ibge);
-        //Task AddAsync(CategoryDTO categoryDTO);
-        //Task UpdateAsync(CategoryDTO categoryDTO);
-        //Task RemoveAsync(int? id);
+        Task<IEnumerable<LocationDTO>> GetAsync();
+        Task<LocationDTO> GetByCityAsync(string city);
+        Task<LocationDTO> GetByStateAsync(string state);
+        Task<LocationDTO> GetByIbgeAsync(string ibge);
+        Task<LocationDTO> AddAsync(LocationDTO location);
+        Task UpdateAsync(LocationDTO location);
+        Task RemoveAsync(string? id);
     }
 }

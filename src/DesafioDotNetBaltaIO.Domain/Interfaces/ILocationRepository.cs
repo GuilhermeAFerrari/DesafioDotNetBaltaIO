@@ -8,5 +8,8 @@ namespace DesafioDotNetBaltaIO.Domain.Interfaces
         Task<Location?> GetByCityAsync(string city);
         Task<Location?> GetByStateAsync(string state);
         Task<Location?> GetByIbgeAsync(string ibge);
+        Task<Location> AddAsync(Location Location);
+        Task UpdateAsync(Location Location);
+        Task RemoveAsync(Location Location);
     }
 }
