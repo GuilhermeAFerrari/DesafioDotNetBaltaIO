@@ -177,8 +177,8 @@ void MapActionsLocations(WebApplication app)
             Guid id, MinimalContextDb context) =>
 
             await context.Customers.FindAsync(id)
-                is Customer customer
-                    ? Results.Ok(customer)
+                is Location location
+                    ? Results.Ok(location)
                     : Results.NotFound())
             .Produces<Customer>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
