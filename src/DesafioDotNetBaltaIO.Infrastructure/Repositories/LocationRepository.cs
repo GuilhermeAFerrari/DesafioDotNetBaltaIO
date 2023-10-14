@@ -14,31 +14,42 @@ namespace DesafioDotNetBaltaIO.Infrastructure.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<IEnumerable<Location>> GetLocationsAsync() =>  await _dbContext.Ibge.ToListAsync();
+        public async Task<IEnumerable<Location>> GetLocationsAsync() =>
+            await _dbContext.Ibge
+            .AsNoTracking()
+            .ToListAsync();
 
-        public async Task<Location?> GetByCityAsync(string city) => await _dbContext.Ibge.FirstOrDefaultAsync(x => x.City == city);
+        public async Task<Location?> GetByCityAsync(string city) =>
+            await _dbContext.Ibge
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.City == city);
 
-        public async Task<Location?> GetByStateAsync(string state) => await _dbContext.Ibge.FirstOrDefaultAsync(x => x.State == state);
+        public async Task<Location?> GetByStateAsync(string state) =>
+            await _dbContext.Ibge
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.State == state);
 
-        public async Task<Location?> GetByIbgeAsync(string ibge) => await _dbContext.Ibge.FirstOrDefaultAsync(x => x.Id == ibge);
+        public async Task<Location?> GetByIbgeAsync(string ibge) =>
+            await _dbContext.Ibge
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == ibge);
 
-        public async Task<Location> AddAsync(Location location)
+        public async Task<int> AddAsync(Location location)
         {
             _dbContext.Add(location);
-            await _dbContext.SaveChangesAsync();
-            return location;
+            return await _dbContext.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(Location Location)
+        public async Task<int> UpdateAsync(Location Location)
         {
             _dbContext.Update(Location);
-            await _dbContext.SaveChangesAsync();
+            return await _dbContext.SaveChangesAsync();
         }
 
-        public async Task RemoveAsync(Location Location)
+        public async Task<int> RemoveAsync(Location Location)
         {
             _dbContext.Remove(Location);
-            await _dbContext.SaveChangesAsync();
+            return await _dbContext.SaveChangesAsync();
         }
     }
 }

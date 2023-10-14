@@ -47,23 +47,22 @@ namespace DesafioDotNetBaltaIO.Application.Services
                 );
         }
 
-        public async Task<LocationDTO> AddAsync(LocationDTO location)
+        public async Task<int> AddAsync(LocationDTO location)
         {
             var locationEntity = _mapper.Map<Location>(location);
-            await _locationRepository.AddAsync(locationEntity);
-            return location;
+            return await _locationRepository.AddAsync(locationEntity);
         }
 
-        public async Task UpdateAsync(LocationDTO location)
+        public async Task<int> UpdateAsync(LocationDTO location)
         {
             var locationEntity = _mapper.Map<Location>(location);
-            await _locationRepository.UpdateAsync(locationEntity);
+            return await _locationRepository.UpdateAsync(locationEntity);
         }
 
-        public async Task RemoveAsync(string? id)
+        public async Task<int> RemoveAsync(string? id)
         {
             var locationEntity = await _locationRepository.GetByIbgeAsync(id);
-            await _locationRepository.RemoveAsync(locationEntity);
+            return await _locationRepository.RemoveAsync(locationEntity);
         }
     }
 }

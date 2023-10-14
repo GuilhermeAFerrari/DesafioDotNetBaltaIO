@@ -221,7 +221,7 @@ void MapActionsLocations(WebApplication app)
 
         var result = await service.AddAsync(location);
 
-        return result is LocationDTO
+        return result > 0
             ? Results.CreatedAtRoute("GetLocationByIbge", new { ibge = location.Id }, location)
             : Results.BadRequest("An error ocurred while saving the record");
     })
@@ -232,49 +232,45 @@ void MapActionsLocations(WebApplication app)
         .WithTags("Location");
 
 
-    //app.MapPut("/customer/{id}", [Authorize] async (
-    //    Guid id, MinimalContextDb context, Customer customer) =>
-    //{
-    //    var customerFromDatabase = await context.Customers.AsNoTracking()
-    //        .FirstOrDefaultAsync(x => x.Id == id);
-    //    if (customerFromDatabase == null) return Results.NotFound();
+    app.MapPut("/location/{ibge}", async (
+        string ibge, ILocationService service, LocationDTO location) =>
+    {
+        var locationFromDatabase = await service.GetByIbgeAsync(ibge);
+        if (locationFromDatabase == null) return Results.NotFound();
 
-    //    if (!MiniValidator.TryValidate(customer, out var errors))
-    //        return Results.ValidationProblem(errors);
+        if (!MiniValidator.TryValidate(location, out var errors))
+            return Results.ValidationProblem(errors);
 
-    //    context.Customers.Update(customer);
-    //    var result = await context.SaveChangesAsync();
+        var result = await service.UpdateAsync(location);
 
-    //    return result > 0
-    //        ? Results.NoContent()
-    //        : Results.BadRequest("An error ocurred while saving the record");
-    //})
-    //    .ProducesValidationProblem()
-    //    .Produces(StatusCodes.Status404NotFound)
-    //    .Produces(StatusCodes.Status204NoContent)
-    //    .Produces(StatusCodes.Status400BadRequest)
-    //    .WithName("PutCustomer")
-    //    .WithTags("Customer");
+        return result > 0
+            ? Results.NoContent()
+            : Results.BadRequest("An error ocurred while saving the record");
+    })
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PutLocation")
+        .WithTags("Location");
 
-    //app.MapDelete("/customer/{id}", [Authorize] async (
-    //    Guid id, MinimalContextDb context) =>
-    //{
-    //    var customerFromDatabase = await context.Customers.FindAsync(id);
-    //    if (customerFromDatabase == null) return Results.NotFound();
+    app.MapDelete("/location/{ibge}", async (
+        string ibge, ILocationService service) =>
+    {
+        var locationFromDatabase = await service.GetByIbgeAsync(ibge);
+        if (locationFromDatabase == null) return Results.NotFound();
 
-    //    context.Customers.Remove(customerFromDatabase);
-    //    var result = await context.SaveChangesAsync();
+        var result = await service.RemoveAsync(ibge);
 
-    //    return result > 0
-    //        ? Results.NoContent()
-    //        : Results.BadRequest("An error ocurred while saving the record");
-    //})
-    //    .RequireAuthorization("DeleteCustomer")
-    //    .Produces(StatusCodes.Status404NotFound)
-    //    .Produces(StatusCodes.Status204NoContent)
-    //    .Produces(StatusCodes.Status400BadRequest)
-    //    .WithName("DeleteCustomer")
-    //    .WithTags("Customer");
+        return result > 0
+            ? Results.NoContent()
+            : Results.BadRequest("An error ocurred while saving the record");
+    })
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("DeleteLocation")
+        .WithTags("Location");
 }
 
 #endregion
