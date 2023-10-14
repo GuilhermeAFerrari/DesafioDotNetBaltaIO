@@ -1,11 +1,68 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+#region Configure services
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Minimal API Sample",
+        Description = "",
+        License = new OpenApiLicense { Name = "MIT", Url = new Uri("https://opensource.org/licenses/MIT") }
+    });
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Insert the JWT token: Bearer {your token}",
+        Name = "Authorization",
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
+//TODO: Configure context
+builder.Services.AddDbContext<MinimalContextDb>(options =>
+    options.UseSqlServer(builder.Configuration["DefaultConnection"]));
+
+builder.Services.AddIdentityEntityFrameworkContextConfiguration(options =>
+    options.UseSqlServer(builder.Configuration["DefaultConnection"],
+    b => b.MigrationsAssembly("MinimalApi-CustomerRecords")));
+
+builder.Services.AddIdentityConfiguration();
+builder.Services.AddJwtConfiguration(builder.Configuration, "Jwt");
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("DeleteCustomer", policy => policy.RequireClaim("DeleteCustomer"));
+});
 
 var app = builder.Build();
+
+#endregion
+
+#region Configure pipelines
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -14,31 +71,153 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+MapActionsLogin(app);
+MapActionsLocations(app);
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+#endregion
+
+#region Enpoints Login
+
+void MapActionsLogin(WebApplication app)
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    app.MapPost("/register", [AllowAnonymous] async (
+        UserManager<IdentityUser> userManager,
+        IOptions<AppJwtSettings> appJwtSettings,
+        RegisterUser registerUser) =>
+    {
+        if (registerUser == null)
+            return Results.BadRequest("User is required");
+
+        if (!MiniValidator.TryValidate(registerUser, out var errors))
+            return Results.ValidationProblem(errors);
+
+        var user = new IdentityUser
+        {
+            UserName = registerUser.Email,
+            Email = registerUser.Email,
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(user, registerUser.Password);
+
+        if (!result.Succeeded)
+            return Results.BadRequest(result.Errors);
+
+        var jwt = new JwtBuilder()
+            .WithUserManager(userManager)
+            .WithJwtSettings(appJwtSettings.Value)
+            .WithEmail(user.Email)
+            .WithJwtClaims()
+            .WithUserClaims()
+            .WithUserRoles()
+            .BuildUserResponse();
+
+        return Results.Ok(jwt);
+    })
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("UserRegister")
+        .WithTags("User");
+
+    app.MapPost("/login", [AllowAnonymous] async (
+        SignInManager<IdentityUser> signInManager,
+        UserManager<IdentityUser> userManager,
+        IOptions<AppJwtSettings> appJwtSettings,
+        LoginUser loginUser) =>
+    {
+        if (loginUser == null)
+            return Results.BadRequest("User is required");
+
+        if (!MiniValidator.TryValidate(loginUser, out var errors))
+            return Results.ValidationProblem(errors);
+
+        var result = await signInManager.PasswordSignInAsync(loginUser.Email, loginUser.Password, false, true);
+
+        if (result.IsLockedOut)
+            return Results.BadRequest("Blocked user");
+
+        if (!result.Succeeded)
+            return Results.BadRequest("Invalid user or password");
+
+        var jwt = new JwtBuilder()
+            .WithUserManager(userManager)
+            .WithJwtSettings(appJwtSettings.Value)
+            .WithEmail(loginUser.Email)
+            .WithJwtClaims()
+            .WithUserClaims()
+            .WithUserRoles()
+            .BuildUserResponse();
+
+        return Results.Ok(jwt);
+    })
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("UserLogin")
+        .WithTags("User");
 }
+
+#endregion
+
+#region Endpoints Locations
+
+void MapActionsLocations(WebApplication app)
+{
+
+    app.MapGet("/locations", async (
+            Guid id, MinimalContextDb context) =>
+
+            await context.Customers.FindAsync(id)
+                is Customer customer
+                    ? Results.Ok(customer)
+                    : Results.NotFound())
+            .Produces<Customer>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocations")
+            .WithTags("Locations");
+
+    app.MapGet("/locations-by-city/{city}", async (
+            Guid id, MinimalContextDb context) =>
+
+            await context.Customers.FindAsync(id)
+                is Customer location
+                    ? Results.Ok(location)
+                    : Results.NotFound())
+            .Produces<Customer>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByCity")
+            .WithTags("Locations");
+
+    app.MapGet("/locations-by-state/{state}", async (
+            Guid id, MinimalContextDb context) =>
+
+            await context.Customers.FindAsync(id)
+                is Customer customer
+                    ? Results.Ok(customer)
+                    : Results.NotFound())
+            .Produces<Customer>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByState")
+            .WithTags("Locations");
+
+    app.MapGet("/locations-by-ibge/{ibge}", [AllowAnonymous] async (
+            Guid id, MinimalContextDb context) =>
+
+            await context.Customers.FindAsync(id)
+                is Customer customer
+                    ? Results.Ok(customer)
+                    : Results.NotFound())
+            .Produces<Customer>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByIbge")
+            .WithTags("Customer");
+
+}
+#endregion
