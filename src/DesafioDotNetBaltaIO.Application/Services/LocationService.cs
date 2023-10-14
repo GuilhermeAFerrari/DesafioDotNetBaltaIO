@@ -22,19 +22,28 @@ namespace DesafioDotNetBaltaIO.Application.Services
             return _mapper.Map<IEnumerable<LocationDTO>>(locations);
         }
 
-        public Task<LocationDTO> GetByCityAsync(int? id)
+        public async Task<LocationDTO> GetLocationByCityAsync(string city)
         {
-            throw new NotImplementedException();
+            return _mapper
+                .Map<LocationDTO>(
+                    await _locationRepository.GetByCityAsync(city)
+                );
         }
 
-        public Task<LocationDTO> GetByStateAsync(int? id)
+        public async Task<LocationDTO> GetLocationByStateAsync(string state)
         {
-            throw new NotImplementedException();
+            return _mapper
+                .Map<LocationDTO>(
+                    await _locationRepository.GetByStateAsync(state)
+                );
         }
 
-        public Task<LocationDTO> GetByIbgeAsync(int? id)
+        public async Task<LocationDTO> GetLocationByIbgeAsync(string ibge)
         {
-            throw new NotImplementedException();
+            return _mapper
+                .Map<LocationDTO>(
+                    await _locationRepository.GetByIbgeAsync(ibge)
+                );
         }
     }
 }

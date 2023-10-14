@@ -5,9 +5,9 @@ namespace DesafioDotNetBaltaIO.Application.Interfaces
     public interface ILocationService
     {
         Task<IEnumerable<LocationDTO>> GetLocationsAsync();
-        Task<LocationDTO> GetByCityAsync(int? id);
-        Task<LocationDTO> GetByStateAsync(int? id);
-        Task<LocationDTO> GetByIbgeAsync(int? id);
+        Task<LocationDTO> GetLocationByCityAsync(string city);
+        Task<LocationDTO> GetLocationByStateAsync(string state);
+        Task<LocationDTO> GetLocationByIbgeAsync(string ibge);
         //Task AddAsync(CategoryDTO categoryDTO);
         //Task UpdateAsync(CategoryDTO categoryDTO);
         //Task RemoveAsync(int? id);
