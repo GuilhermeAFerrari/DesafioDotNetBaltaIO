@@ -15,6 +15,7 @@ namespace DesafioDotNetBaltaIO.Application.Services
             _locationRepository = locationRepository;
             _mapper = mapper;
         }
+
         public async Task<IEnumerable<LocationDTO>> GetLocationsAsync()
         {
             var locations = await _locationRepository.GetLocationsAsync();

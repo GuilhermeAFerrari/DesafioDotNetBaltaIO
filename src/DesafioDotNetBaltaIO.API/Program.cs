@@ -17,7 +17,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Minimal API Sample",
+        Title = "Desafio DotNet Balta IO - Location",
         Description = "",
         License = new OpenApiLicense { Name = "MIT", Url = new Uri("https://opensource.org/licenses/MIT") }
     });
