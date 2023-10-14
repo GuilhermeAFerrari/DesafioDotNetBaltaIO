@@ -42,6 +42,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+//TODO: Add DI
+
 //TODO: Configure context
 builder.Services.AddDbContext<MinimalContextDb>(options =>
     options.UseSqlServer(builder.Configuration["DefaultConnection"]));
