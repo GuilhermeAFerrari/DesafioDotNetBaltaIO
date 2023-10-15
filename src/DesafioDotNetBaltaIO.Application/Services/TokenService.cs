@@ -1,4 +1,5 @@
 ﻿using DesafioDotNetBaltaIO.Application.Interfaces;
+using DesafioDotNetBaltaIO.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -16,7 +17,7 @@ namespace DesafioDotNetBaltaIO.Application.Services
             _configuration = configuration;
         }
 
-        public string CreateToken()
+        public string CreateToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
 
@@ -26,8 +27,8 @@ namespace DesafioDotNetBaltaIO.Application.Services
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.Name, "Guilherme Ferrari"),
-                    new Claim(ClaimTypes.Email, "guile.ferrari@hotmail.com"),
+                    new Claim(ClaimTypes.Name, user.Name),
+                    new Claim(ClaimTypes.Email, user.Email),
                 }),
                 Expires = DateTime.UtcNow.AddHours(2),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

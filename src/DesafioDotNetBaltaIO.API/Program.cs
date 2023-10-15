@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using MiniValidation;
+using DesafioDotNetBaltaIO.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -106,32 +107,22 @@ app.Run();
 void MapActionsLogin(WebApplication app)
 {
     app.MapPost("/login", [AllowAnonymous] async (
-        UserDTO user, IUserService service) =>
+        UserDTO user, IUserService userService, ITokenService tokenService) =>
     {
-        if (user == null)
+        if (user is null)
             return Results.BadRequest("User is required");
 
-        if (!MiniValidator.TryValidate(loginUser, out var errors))
+        if (!MiniValidator.TryValidate(user, out var errors))
             return Results.ValidationProblem(errors);
 
-        var result = await signInManager.PasswordSignInAsync(loginUser.Email, loginUser.Password, false, true);
+        var userFromDatabase = await userService.GetByEmailAndPasswordAsync(user);
 
-        if (result.IsLockedOut)
-            return Results.BadRequest("Blocked user");
+        if (userFromDatabase is null)
+            return Results.BadRequest("User or password wrong");
 
-        if (!result.Succeeded)
-            return Results.BadRequest("Invalid user or password");
+        var tokenJwt = tokenService.CreateToken(userFromDatabase);
 
-        var jwt = new JwtBuilder()
-            .WithUserManager(userManager)
-            .WithJwtSettings(appJwtSettings.Value)
-            .WithEmail(loginUser.Email)
-            .WithJwtClaims()
-            .WithUserClaims()
-            .WithUserRoles()
-            .BuildUserResponse();
-
-        return Results.Ok(jwt);
+        return Results.Ok(tokenJwt);
     })
         .ProducesValidationProblem()
         .Produces(StatusCodes.Status200OK)
@@ -139,47 +130,26 @@ void MapActionsLogin(WebApplication app)
         .WithName("UserLogin")
         .WithTags("User");
 
-    //app.MapPost("/register", [AllowAnonymous] async (
-    //    UserManager<IdentityUser> userManager,
-    //    IOptions<AppJwtSettings> appJwtSettings,
-    //    RegisterUser registerUser) =>
-    //{
-    //    if (registerUser == null)
-    //        return Results.BadRequest("User is required");
+    app.MapPost("/register", [AllowAnonymous] async (
+        UserDTO user, IUserService userService) =>
+    {
+        if (user is null)
+            return Results.BadRequest("User is required");
 
-    //    if (!MiniValidator.TryValidate(registerUser, out var errors))
-    //        return Results.ValidationProblem(errors);
+        if (!MiniValidator.TryValidate(user, out var errors))
+            return Results.ValidationProblem(errors);
 
-    //    var user = new IdentityUser
-    //    {
-    //        UserName = registerUser.Email,
-    //        Email = registerUser.Email,
-    //        EmailConfirmed = true
-    //    };
+        var result = await userService.AddAsync(user);
 
-    //    var result = await userManager.CreateAsync(user, registerUser.Password);
-
-    //    if (!result.Succeeded)
-    //        return Results.BadRequest(result.Errors);
-
-    //    var jwt = new JwtBuilder()
-    //        .WithUserManager(userManager)
-    //        .WithJwtSettings(appJwtSettings.Value)
-    //        .WithEmail(user.Email)
-    //        .WithJwtClaims()
-    //        .WithUserClaims()
-    //        .WithUserRoles()
-    //        .BuildUserResponse();
-
-    //    return Results.Ok(jwt);
-    //})
-    //    .ProducesValidationProblem()
-    //    .Produces(StatusCodes.Status200OK)
-    //    .Produces(StatusCodes.Status400BadRequest)
-    //    .WithName("UserRegister")
-    //    .WithTags("User");
-
-
+        return result > 0
+            ? Results.CreatedAtRoute("UserLogin", user)
+            : Results.BadRequest("An error ocurred while saving the user");
+    })
+        .ProducesValidationProblem()
+        .Produces<string>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("UserRegister")
+        .WithTags("User");
 }
 
 #endregion

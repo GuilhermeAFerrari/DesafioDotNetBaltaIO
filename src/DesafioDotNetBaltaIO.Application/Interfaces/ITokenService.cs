@@ -1,7 +1,9 @@
-﻿namespace DesafioDotNetBaltaIO.Application.Interfaces
+﻿using DesafioDotNetBaltaIO.Domain.Entities;
+
+namespace DesafioDotNetBaltaIO.Application.Interfaces
 {
     public interface ITokenService
     {
-        string CreateToken();
+        string CreateToken(User user);
     }
 }

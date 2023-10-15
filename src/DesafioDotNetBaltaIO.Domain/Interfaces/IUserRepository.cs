@@ -4,6 +4,7 @@ namespace DesafioDotNetBaltaIO.Domain.Interfaces
 {
     public interface IUserRepository
     {
-        Task<User?> GetByEmailAndPassword(string email, string password);
+        Task<User?> GetByEmailAndPasswordAsync(User user);
+        Task<int> AddAsync(User user);
     }
 }
