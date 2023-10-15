@@ -232,14 +232,14 @@ void MapActionsLocations(WebApplication app)
         .WithTags("Location");
 
 
-    app.MapPut("/location/{ibge}", async (
-        string ibge, ILocationService service, LocationDTO location) =>
+    app.MapPut("/location", async (
+        ILocationService service, LocationDTO location) =>
     {
-        var locationFromDatabase = await service.GetByIbgeAsync(ibge);
-        if (locationFromDatabase == null) return Results.NotFound();
-
         if (!MiniValidator.TryValidate(location, out var errors))
             return Results.ValidationProblem(errors);
+
+        var locationFromDatabase = await service.GetByIbgeAsync(location.Id);
+        if (locationFromDatabase == null) return Results.NotFound();
 
         var result = await service.UpdateAsync(location);
 
