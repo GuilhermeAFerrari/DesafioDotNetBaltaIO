@@ -106,7 +106,7 @@ app.Run();
 
 void MapActionsLogin(WebApplication app)
 {
-    app.MapPost("/login", [AllowAnonymous] async (
+    app.MapPost("v1/login", [AllowAnonymous] async (
         UserDTO user, IUserService userService, ITokenService tokenService) =>
     {
         if (user is null)
@@ -130,7 +130,7 @@ void MapActionsLogin(WebApplication app)
         .WithName("UserLogin")
         .WithTags("User");
 
-    app.MapPost("/register", [AllowAnonymous] async (
+    app.MapPost("v1/register", [AllowAnonymous] async (
         UserDTO user, IUserService userService) =>
     {
         if (user is null)
