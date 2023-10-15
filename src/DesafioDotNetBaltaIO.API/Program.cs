@@ -2,10 +2,10 @@ using DesafioDotNetBaltaIO.Application.DTOs;
 using DesafioDotNetBaltaIO.Application.Interfaces;
 using DesafioDotNetBaltaIO.Application.Mappings;
 using DesafioDotNetBaltaIO.Application.Services;
-using DesafioDotNetBaltaIO.Domain.Entities;
 using DesafioDotNetBaltaIO.Domain.Interfaces;
 using DesafioDotNetBaltaIO.Infrastructure.Context;
 using DesafioDotNetBaltaIO.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using MiniValidation;
@@ -19,8 +19,8 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Desafio DotNet Balta IO - Location",
-        Description = "",
+        Title = "Desafio DotNet Balta IO",
+        Description = "CRUD de IBGE",
         License = new OpenApiLicense { Name = "MIT", Url = new Uri("https://opensource.org/licenses/MIT") }
     });
 
@@ -50,6 +50,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Versioning
+builder.Services.AddApiVersioning(config =>
+{
+    config.DefaultApiVersion = new ApiVersion(1, 0);
+    config.AssumeDefaultVersionWhenUnspecified = true;
+    config.ReportApiVersions = true;
+});
+
 // Dependency Injection
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<ILocationService, LocationService>();
@@ -71,7 +79,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API de IBGE v1");
+    });
 }
 
 app.UseHttpsRedirection();
@@ -171,14 +182,14 @@ void MapActionsLogin(WebApplication app)
 
 void MapActionsLocations(WebApplication app)
 {
-    app.MapGet("/locations", async (ILocationService service) =>
+    app.MapGet("/v1/locations", async (ILocationService service) =>
             await service.GetAsync())                
             .Produces<IEnumerable<LocationDTO>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetLocations")
             .WithTags("Location");
 
-    app.MapGet("/locations/city/{city}", async (
+    app.MapGet("/v1/locations/city/{city}", async (
             string city, ILocationService service) =>
 
             await service.GetByCityAsync(city)
@@ -190,7 +201,7 @@ void MapActionsLocations(WebApplication app)
             .WithName("GetLocationByCity")
             .WithTags("Location");
 
-    app.MapGet("/locations/state/{state}", async (
+    app.MapGet("/v1/locations/state/{state}", async (
             string state, ILocationService service) =>
 
             await service.GetByStateAsync(state)
@@ -202,7 +213,7 @@ void MapActionsLocations(WebApplication app)
             .WithName("GetLocationByState")
             .WithTags("Location");
 
-    app.MapGet("/locations/ibge/{ibge}", async (
+    app.MapGet("/v1/locations/ibge/{ibge}", async (
             string ibge, ILocationService service) =>
 
             await service.GetByIbgeAsync(ibge)
@@ -214,7 +225,7 @@ void MapActionsLocations(WebApplication app)
             .WithName("GetLocationByIbge")
             .WithTags("Location");
 
-    app.MapPost("/location", async (LocationDTO location, ILocationService service) =>
+    app.MapPost("/v1/location", async (LocationDTO location, ILocationService service) =>
     {
         if (!MiniValidator.TryValidate(location, out var errors))
             return Results.ValidationProblem(errors);
@@ -232,7 +243,7 @@ void MapActionsLocations(WebApplication app)
         .WithTags("Location");
 
 
-    app.MapPut("/location", async (
+    app.MapPut("/v1/location", async (
         ILocationService service, LocationDTO location) =>
     {
         if (!MiniValidator.TryValidate(location, out var errors))
@@ -254,7 +265,7 @@ void MapActionsLocations(WebApplication app)
         .WithName("PutLocation")
         .WithTags("Location");
 
-    app.MapDelete("/location/{ibge}", async (
+    app.MapDelete("/v1/location/{ibge}", async (
         string ibge, ILocationService service) =>
     {
         var locationFromDatabase = await service.GetByIbgeAsync(ibge);
