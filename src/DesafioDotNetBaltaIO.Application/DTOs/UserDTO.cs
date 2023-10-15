@@ -1,4 +1,10 @@
-﻿namespace DesafioDotNetBaltaIO.Application.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace DesafioDotNetBaltaIO.Application.DTOs
 {
-    public record UserDTO(string Email, string Password);
+    public record UserDTO(
+        [property: Required] string Email,
+        [property: Required] string Password,
+        string? Name
+    );
 }

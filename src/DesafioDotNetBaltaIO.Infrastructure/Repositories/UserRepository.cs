@@ -14,12 +14,18 @@ namespace DesafioDotNetBaltaIO.Infrastructure.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<User?> GetByEmailAndPassword(string email, string password)
+        public async Task<User?> GetByEmailAndPasswordAsync(User user)
         {
-            return await _dbContext.User.FirstOrDefaultAsync(
-                x => string.Equals(x.Email, email, StringComparison.CurrentCultureIgnoreCase) &&
-                x.Password.ToLower() == password
+            return await _dbContext.Users.FirstOrDefaultAsync(x =>
+                x.Email.ToLower() == user.Email.ToLower() &&
+                x.Password == user.Password
             );
+        }
+
+        public async Task<int> AddAsync(User user)
+        {
+            _dbContext.Add(user);
+            return await _dbContext.SaveChangesAsync();
         }
     }
 }
