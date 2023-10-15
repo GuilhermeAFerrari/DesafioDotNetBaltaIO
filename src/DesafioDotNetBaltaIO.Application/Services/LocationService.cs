@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using DesafioDotNetBaltaIO.Application.DTOs;
 using DesafioDotNetBaltaIO.Application.Interfaces;
+using DesafioDotNetBaltaIO.Domain.Entities;
 using DesafioDotNetBaltaIO.Domain.Interfaces;
 
 namespace DesafioDotNetBaltaIO.Application.Services
@@ -15,25 +16,53 @@ namespace DesafioDotNetBaltaIO.Application.Services
             _locationRepository = locationRepository;
             _mapper = mapper;
         }
-        public async Task<IEnumerable<LocationDTO>> GetLocationsAsync()
+
+        public async Task<IEnumerable<LocationDTO>> GetAsync()
         {
             var locations = await _locationRepository.GetLocationsAsync();
             return _mapper.Map<IEnumerable<LocationDTO>>(locations);
         }
 
-        public Task<LocationDTO> GetByCityAsync(int? id)
+        public async Task<LocationDTO> GetByCityAsync(string city)
         {
-            throw new NotImplementedException();
+            return _mapper
+                .Map<LocationDTO>(
+                    await _locationRepository.GetByCityAsync(city)
+                );
         }
 
-        public Task<LocationDTO> GetByStateAsync(int? id)
+        public async Task<LocationDTO> GetByStateAsync(string state)
         {
-            throw new NotImplementedException();
+            return _mapper
+                .Map<LocationDTO>(
+                    await _locationRepository.GetByStateAsync(state)
+                );
         }
 
-        public Task<LocationDTO> GetByIbgeAsync(int? id)
+        public async Task<LocationDTO> GetByIbgeAsync(string ibge)
         {
-            throw new NotImplementedException();
+            return _mapper
+                .Map<LocationDTO>(
+                    await _locationRepository.GetByIbgeAsync(ibge)
+                );
+        }
+
+        public async Task<int> AddAsync(LocationDTO location)
+        {
+            var locationEntity = _mapper.Map<Location>(location);
+            return await _locationRepository.AddAsync(locationEntity);
+        }
+
+        public async Task<int> UpdateAsync(LocationDTO location)
+        {
+            var locationEntity = _mapper.Map<Location>(location);
+            return await _locationRepository.UpdateAsync(locationEntity);
+        }
+
+        public async Task<int> RemoveAsync(string? id)
+        {
+            var locationEntity = await _locationRepository.GetByIbgeAsync(id);
+            return await _locationRepository.RemoveAsync(locationEntity);
         }
     }
 }

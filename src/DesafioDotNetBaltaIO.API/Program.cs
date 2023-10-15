@@ -2,13 +2,14 @@ using DesafioDotNetBaltaIO.Application.DTOs;
 using DesafioDotNetBaltaIO.Application.Interfaces;
 using DesafioDotNetBaltaIO.Application.Mappings;
 using DesafioDotNetBaltaIO.Application.Services;
-using DesafioDotNetBaltaIO.Domain.Entities;
 using DesafioDotNetBaltaIO.Domain.Interfaces;
 using DesafioDotNetBaltaIO.Infrastructure.Context;
 using DesafioDotNetBaltaIO.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using MiniValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,8 +20,8 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Minimal API Sample",
-        Description = "",
+        Title = "Desafio DotNet Balta IO",
+        Description = "CRUD de IBGE",
         License = new OpenApiLicense { Name = "MIT", Url = new Uri("https://opensource.org/licenses/MIT") }
     });
 
@@ -50,6 +51,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Versioning
+builder.Services.AddApiVersioning(config =>
+{
+    config.DefaultApiVersion = new ApiVersion(1, 0);
+    config.AssumeDefaultVersionWhenUnspecified = true;
+    config.ReportApiVersions = true;
+});
+
 // Dependency Injection
 
 // Repositories
@@ -77,7 +86,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API de IBGE v1");
+    });
 }
 
 app.UseHttpsRedirection();
@@ -176,49 +188,106 @@ void MapActionsLogin(WebApplication app)
 
 void MapActionsLocations(WebApplication app)
 {
-
-    app.MapGet("/locations", async (ILocationService service) =>
-            await service.GetLocationsAsync())                
-            .Produces<Location>(StatusCodes.Status200OK)
+    app.MapGet("/v1/locations", async (ILocationService service) =>
+            await service.GetAsync())                
+            .Produces<IEnumerable<LocationDTO>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetLocations")
-            .WithTags("Locations");
+            .WithTags("Location");
 
-    //app.MapGet("/locations-by-city/{city}", async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapGet("/v1/locations/city/{city}", async (
+            string city, ILocationService service) =>
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer location
-    //                ? Results.Ok(location)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByCity")
-    //        .WithTags("Locations");
+            await service.GetByCityAsync(city)
+                is LocationDTO location
+                    ? Results.Ok(location)
+                    : Results.NotFound())
+            .Produces<LocationDTO>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByCity")
+            .WithTags("Location");
 
-    //app.MapGet("/locations-by-state/{state}", async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapGet("/v1/locations/state/{state}", async (
+            string state, ILocationService service) =>
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer customer
-    //                ? Results.Ok(customer)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByState")
-    //        .WithTags("Locations");
+            await service.GetByStateAsync(state)
+                is LocationDTO location
+                    ? Results.Ok(location)
+                    : Results.NotFound())
+            .Produces<LocationDTO>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByState")
+            .WithTags("Location");
 
-    //app.MapGet("/locations-by-ibge/{ibge}", [AllowAnonymous] async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapGet("/v1/locations/ibge/{ibge}", async (
+            string ibge, ILocationService service) =>
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer customer
-    //                ? Results.Ok(customer)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByIbge")
-    //        .WithTags("Customer");
+            await service.GetByIbgeAsync(ibge)
+                is LocationDTO location
+                    ? Results.Ok(location)
+                    : Results.NotFound())
+            .Produces<LocationDTO>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByIbge")
+            .WithTags("Location");
 
+    app.MapPost("/v1/location", async (LocationDTO location, ILocationService service) =>
+    {
+        if (!MiniValidator.TryValidate(location, out var errors))
+            return Results.ValidationProblem(errors);
+
+        var result = await service.AddAsync(location);
+
+        return result > 0
+            ? Results.CreatedAtRoute("GetLocationByIbge", new { ibge = location.Id }, location)
+            : Results.BadRequest("An error ocurred while saving the record");
+    })
+        .ProducesValidationProblem()
+        .Produces<LocationDTO>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PostLocation")
+        .WithTags("Location");
+
+
+    app.MapPut("/v1/location", async (
+        ILocationService service, LocationDTO location) =>
+    {
+        if (!MiniValidator.TryValidate(location, out var errors))
+            return Results.ValidationProblem(errors);
+
+        var locationFromDatabase = await service.GetByIbgeAsync(location.Id);
+        if (locationFromDatabase == null) return Results.NotFound();
+
+        var result = await service.UpdateAsync(location);
+
+        return result > 0
+            ? Results.NoContent()
+            : Results.BadRequest("An error ocurred while saving the record");
+    })
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PutLocation")
+        .WithTags("Location");
+
+    app.MapDelete("/v1/location/{ibge}", async (
+        string ibge, ILocationService service) =>
+    {
+        var locationFromDatabase = await service.GetByIbgeAsync(ibge);
+        if (locationFromDatabase == null) return Results.NotFound();
+
+        var result = await service.RemoveAsync(ibge);
+
+        return result > 0
+            ? Results.NoContent()
+            : Results.BadRequest("An error ocurred while saving the record");
+    })
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("DeleteLocation")
+        .WithTags("Location");
 }
+
 #endregion
