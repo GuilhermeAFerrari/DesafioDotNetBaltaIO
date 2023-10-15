@@ -14,24 +14,42 @@ namespace DesafioDotNetBaltaIO.Infrastructure.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<IEnumerable<Location>> GetLocationsAsync()
+        public async Task<IEnumerable<Location>> GetLocationsAsync() =>
+            await _dbContext.Ibge
+            .AsNoTracking()
+            .ToListAsync();
+
+        public async Task<Location?> GetByCityAsync(string city) =>
+            await _dbContext.Ibge
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.City == city);
+
+        public async Task<Location?> GetByStateAsync(string state) =>
+            await _dbContext.Ibge
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.State == state);
+
+        public async Task<Location?> GetByIbgeAsync(string ibge) =>
+            await _dbContext.Ibge
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == ibge);
+
+        public async Task<int> AddAsync(Location location)
         {
-            return await _dbContext.Ibge.ToListAsync();
+            _dbContext.Add(location);
+            return await _dbContext.SaveChangesAsync();
         }
 
-        public async Task<Location?> GetByCityAsync(string city)
+        public async Task<int> UpdateAsync(Location Location)
         {
-            return await _dbContext.Ibge.FirstOrDefaultAsync(x => x.City == city);
+            _dbContext.Update(Location);
+            return await _dbContext.SaveChangesAsync();
         }
 
-        public async Task<Location?> GetByStateAsync(string state)
+        public async Task<int> RemoveAsync(Location Location)
         {
-            return await _dbContext.Ibge.FirstOrDefaultAsync(x => x.State == state);
-        }
-
-        public async Task<Location?> GetByIbgeAsync(string ibge)
-        {
-            return await _dbContext.Ibge.FirstOrDefaultAsync(x => x.Id == ibge);
+            _dbContext.Remove(Location);
+            return await _dbContext.SaveChangesAsync();
         }
     }
 }

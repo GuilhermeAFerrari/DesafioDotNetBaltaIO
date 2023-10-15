@@ -1,3 +1,4 @@
+using DesafioDotNetBaltaIO.Application.DTOs;
 using DesafioDotNetBaltaIO.Application.Interfaces;
 using DesafioDotNetBaltaIO.Application.Mappings;
 using DesafioDotNetBaltaIO.Application.Services;
@@ -7,6 +8,7 @@ using DesafioDotNetBaltaIO.Infrastructure.Context;
 using DesafioDotNetBaltaIO.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using MiniValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -169,49 +171,106 @@ void MapActionsLogin(WebApplication app)
 
 void MapActionsLocations(WebApplication app)
 {
-
     app.MapGet("/locations", async (ILocationService service) =>
-            await service.GetLocationsAsync())                
-            .Produces<Location>(StatusCodes.Status200OK)
+            await service.GetAsync())                
+            .Produces<IEnumerable<LocationDTO>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetLocations")
-            .WithTags("Locations");
+            .WithTags("Location");
 
-    //app.MapGet("/locations-by-city/{city}", async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapGet("/locations/city/{city}", async (
+            string city, ILocationService service) =>
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer location
-    //                ? Results.Ok(location)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByCity")
-    //        .WithTags("Locations");
+            await service.GetByCityAsync(city)
+                is LocationDTO location
+                    ? Results.Ok(location)
+                    : Results.NotFound())
+            .Produces<LocationDTO>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByCity")
+            .WithTags("Location");
 
-    //app.MapGet("/locations-by-state/{state}", async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapGet("/locations/state/{state}", async (
+            string state, ILocationService service) =>
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer customer
-    //                ? Results.Ok(customer)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByState")
-    //        .WithTags("Locations");
+            await service.GetByStateAsync(state)
+                is LocationDTO location
+                    ? Results.Ok(location)
+                    : Results.NotFound())
+            .Produces<LocationDTO>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByState")
+            .WithTags("Location");
 
-    //app.MapGet("/locations-by-ibge/{ibge}", [AllowAnonymous] async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapGet("/locations/ibge/{ibge}", async (
+            string ibge, ILocationService service) =>
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer customer
-    //                ? Results.Ok(customer)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByIbge")
-    //        .WithTags("Customer");
+            await service.GetByIbgeAsync(ibge)
+                is LocationDTO location
+                    ? Results.Ok(location)
+                    : Results.NotFound())
+            .Produces<LocationDTO>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .WithName("GetLocationByIbge")
+            .WithTags("Location");
 
+    app.MapPost("/location", async (LocationDTO location, ILocationService service) =>
+    {
+        if (!MiniValidator.TryValidate(location, out var errors))
+            return Results.ValidationProblem(errors);
+
+        var result = await service.AddAsync(location);
+
+        return result > 0
+            ? Results.CreatedAtRoute("GetLocationByIbge", new { ibge = location.Id }, location)
+            : Results.BadRequest("An error ocurred while saving the record");
+    })
+        .ProducesValidationProblem()
+        .Produces<LocationDTO>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PostLocation")
+        .WithTags("Location");
+
+
+    app.MapPut("/location", async (
+        ILocationService service, LocationDTO location) =>
+    {
+        if (!MiniValidator.TryValidate(location, out var errors))
+            return Results.ValidationProblem(errors);
+
+        var locationFromDatabase = await service.GetByIbgeAsync(location.Id);
+        if (locationFromDatabase == null) return Results.NotFound();
+
+        var result = await service.UpdateAsync(location);
+
+        return result > 0
+            ? Results.NoContent()
+            : Results.BadRequest("An error ocurred while saving the record");
+    })
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PutLocation")
+        .WithTags("Location");
+
+    app.MapDelete("/location/{ibge}", async (
+        string ibge, ILocationService service) =>
+    {
+        var locationFromDatabase = await service.GetByIbgeAsync(ibge);
+        if (locationFromDatabase == null) return Results.NotFound();
+
+        var result = await service.RemoveAsync(ibge);
+
+        return result > 0
+            ? Results.NoContent()
+            : Results.BadRequest("An error ocurred while saving the record");
+    })
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("DeleteLocation")
+        .WithTags("Location");
 }
+
 #endregion
