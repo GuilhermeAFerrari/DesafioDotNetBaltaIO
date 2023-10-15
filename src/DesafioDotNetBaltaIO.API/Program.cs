@@ -6,6 +6,7 @@ using DesafioDotNetBaltaIO.Domain.Interfaces;
 using DesafioDotNetBaltaIO.Infrastructure.Context;
 using DesafioDotNetBaltaIO.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using MiniValidation;
@@ -59,13 +60,19 @@ builder.Services.AddApiVersioning(config =>
 });
 
 // Dependency Injection
+
+// Repositories
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+// Services
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddTransient<ITokenService, TokenService>();
+builder.Services.AddTransient<IUserService, UserService>();
 
 // Configure AutoMapper
 builder.Services.AddAutoMapper(typeof(LocationMappingProfile));
 
-//TODO: Configure context
+// Configure context
 builder.Services.AddDbContext<DesafioDotNetBaltaIOContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerDocker")));
 
@@ -98,6 +105,40 @@ app.Run();
 
 void MapActionsLogin(WebApplication app)
 {
+    app.MapPost("/login", [AllowAnonymous] async (
+        UserDTO user, IUserService service) =>
+    {
+        if (user == null)
+            return Results.BadRequest("User is required");
+
+        if (!MiniValidator.TryValidate(loginUser, out var errors))
+            return Results.ValidationProblem(errors);
+
+        var result = await signInManager.PasswordSignInAsync(loginUser.Email, loginUser.Password, false, true);
+
+        if (result.IsLockedOut)
+            return Results.BadRequest("Blocked user");
+
+        if (!result.Succeeded)
+            return Results.BadRequest("Invalid user or password");
+
+        var jwt = new JwtBuilder()
+            .WithUserManager(userManager)
+            .WithJwtSettings(appJwtSettings.Value)
+            .WithEmail(loginUser.Email)
+            .WithJwtClaims()
+            .WithUserClaims()
+            .WithUserRoles()
+            .BuildUserResponse();
+
+        return Results.Ok(jwt);
+    })
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("UserLogin")
+        .WithTags("User");
+
     //app.MapPost("/register", [AllowAnonymous] async (
     //    UserManager<IdentityUser> userManager,
     //    IOptions<AppJwtSettings> appJwtSettings,
@@ -138,42 +179,7 @@ void MapActionsLogin(WebApplication app)
     //    .WithName("UserRegister")
     //    .WithTags("User");
 
-    //app.MapPost("/login", [AllowAnonymous] async (
-    //    SignInManager<IdentityUser> signInManager,
-    //    UserManager<IdentityUser> userManager,
-    //    IOptions<AppJwtSettings> appJwtSettings,
-    //    LoginUser loginUser) =>
-    //{
-    //    if (loginUser == null)
-    //        return Results.BadRequest("User is required");
 
-    //    if (!MiniValidator.TryValidate(loginUser, out var errors))
-    //        return Results.ValidationProblem(errors);
-
-    //    var result = await signInManager.PasswordSignInAsync(loginUser.Email, loginUser.Password, false, true);
-
-    //    if (result.IsLockedOut)
-    //        return Results.BadRequest("Blocked user");
-
-    //    if (!result.Succeeded)
-    //        return Results.BadRequest("Invalid user or password");
-
-    //    var jwt = new JwtBuilder()
-    //        .WithUserManager(userManager)
-    //        .WithJwtSettings(appJwtSettings.Value)
-    //        .WithEmail(loginUser.Email)
-    //        .WithJwtClaims()
-    //        .WithUserClaims()
-    //        .WithUserRoles()
-    //        .BuildUserResponse();
-
-    //    return Results.Ok(jwt);
-    //})
-    //    .ProducesValidationProblem()
-    //    .Produces(StatusCodes.Status200OK)
-    //    .Produces(StatusCodes.Status400BadRequest)
-    //    .WithName("UserLogin")
-    //    .WithTags("User");
 }
 
 #endregion
