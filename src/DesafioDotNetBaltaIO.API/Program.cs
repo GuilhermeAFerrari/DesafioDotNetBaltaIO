@@ -11,6 +11,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using MiniValidation;
 using DesafioDotNetBaltaIO.Domain.Entities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,15 +77,38 @@ builder.Services.AddTransient<IUserService, UserService>();
 // Configure AutoMapper
 builder.Services.AddAutoMapper(typeof(LocationMappingProfile));
 
-// Configure context
+// Configure Context
 builder.Services.AddDbContext<DesafioDotNetBaltaIOContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerDocker")));
+
+// Configure Authentication
+builder.Services.AddAuthentication(x =>
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JWT:Secret"]!)),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
 #endregion
 
 #region Configure pipelines
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -163,7 +190,8 @@ void MapActionsLocations(WebApplication app)
             .Produces<IEnumerable<LocationDTO>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetLocations")
-            .WithTags("Location");
+            .WithTags("Location")
+            .RequireAuthorization();
 
     app.MapGet("/v1/locations/city/{city}", async (
             string city, ILocationService service) =>
@@ -175,7 +203,8 @@ void MapActionsLocations(WebApplication app)
             .Produces<LocationDTO>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetLocationByCity")
-            .WithTags("Location");
+            .WithTags("Location")
+            .RequireAuthorization();
 
     app.MapGet("/v1/locations/state/{state}", async (
             string state, ILocationService service) =>
@@ -187,7 +216,8 @@ void MapActionsLocations(WebApplication app)
             .Produces<LocationDTO>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetLocationByState")
-            .WithTags("Location");
+            .WithTags("Location")
+            .RequireAuthorization();
 
     app.MapGet("/v1/locations/ibge/{ibge}", async (
             string ibge, ILocationService service) =>
@@ -199,7 +229,8 @@ void MapActionsLocations(WebApplication app)
             .Produces<LocationDTO>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .WithName("GetLocationByIbge")
-            .WithTags("Location");
+            .WithTags("Location")
+            .RequireAuthorization();
 
     app.MapPost("/v1/location", async (LocationDTO location, ILocationService service) =>
     {
@@ -216,7 +247,8 @@ void MapActionsLocations(WebApplication app)
         .Produces<LocationDTO>(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status400BadRequest)
         .WithName("PostLocation")
-        .WithTags("Location");
+        .WithTags("Location")
+        .RequireAuthorization();
 
 
     app.MapPut("/v1/location", async (
@@ -239,7 +271,8 @@ void MapActionsLocations(WebApplication app)
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
         .WithName("PutLocation")
-        .WithTags("Location");
+        .WithTags("Location")
+        .RequireAuthorization();
 
     app.MapDelete("/v1/location/{ibge}", async (
         string ibge, ILocationService service) =>
@@ -257,7 +290,8 @@ void MapActionsLocations(WebApplication app)
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
         .WithName("DeleteLocation")
-        .WithTags("Location");
+        .WithTags("Location")
+        .RequireAuthorization();
 }
 
 #endregion
