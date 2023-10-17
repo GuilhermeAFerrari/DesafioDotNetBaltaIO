@@ -24,10 +24,11 @@ namespace DesafioDotNetBaltaIO.Infrastructure.Repositories
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.City == city);
 
-        public async Task<Location?> GetByStateAsync(string state) =>
+        public async Task<IEnumerable<Location?>> GetByStateAsync(string state) =>
             await _dbContext.Ibge
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.State == state);
+            .Where(x => x.State == state)
+            .ToListAsync();
 
         public async Task<Location?> GetByIbgeAsync(string ibge) =>
             await _dbContext.Ibge
