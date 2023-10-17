@@ -218,34 +218,24 @@ void MapActionsLocations(WebApplication app)
         .RequireAuthorization();
 
     app.MapPost("/v1/location", async (LocationDTO location, ILocationService service) =>
-    {
-        if (!MiniValidator.TryValidate(location, out var errors))
-            return Results.ValidationProblem(errors);
-
-        return await service.AddAsync(location);
-    })
-    .ProducesValidationProblem()
-    .Produces<LocationDTO>(StatusCodes.Status201Created)
-    .Produces(StatusCodes.Status400BadRequest)
-    .WithName("PostLocation")
-    .WithTags("Location")
-    .RequireAuthorization();
+        await service.AddAsync(location))
+        .ProducesValidationProblem()
+        .Produces<LocationDTO>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PostLocation")
+        .WithTags("Location")
+        .RequireAuthorization();
 
 
     app.MapPut("/v1/location", async (ILocationService service, LocationDTO location) =>
-    {
-        if (!MiniValidator.TryValidate(location, out var errors))
-            return Results.ValidationProblem(errors);
-
-        return await service.UpdateAsync(location);
-    })
-    .ProducesValidationProblem()
-    .Produces(StatusCodes.Status404NotFound)
-    .Produces(StatusCodes.Status204NoContent)
-    .Produces(StatusCodes.Status400BadRequest)
-    .WithName("PutLocation")
-    .WithTags("Location")
-    .RequireAuthorization();
+        await service.UpdateAsync(location))
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PutLocation")
+        .WithTags("Location")
+        .RequireAuthorization();
 
     app.MapDelete("/v1/location/{ibge}", async (string ibge, ILocationService service) =>
         await service.RemoveAsync(ibge))

@@ -4,6 +4,7 @@ using DesafioDotNetBaltaIO.Application.Interfaces;
 using DesafioDotNetBaltaIO.Domain.Entities;
 using DesafioDotNetBaltaIO.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
+using MiniValidation;
 
 namespace DesafioDotNetBaltaIO.Application.Services
 {
@@ -68,6 +69,9 @@ namespace DesafioDotNetBaltaIO.Application.Services
 
         public async Task<IResult> AddAsync(LocationDTO location)
         {
+            if (!MiniValidator.TryValidate(location, out var errors))
+                return Results.ValidationProblem(errors);
+
             var recordExists = await RecordAlreadyExists(location);
             if (recordExists is not null) return Results.BadRequest(recordExists);
 
@@ -81,6 +85,9 @@ namespace DesafioDotNetBaltaIO.Application.Services
 
         public async Task<IResult> UpdateAsync(LocationDTO location)
         {
+            if (!MiniValidator.TryValidate(location, out var errors))
+                return Results.ValidationProblem(errors);
+
             var locationFromDatabase = await _locationRepository.GetByIbgeAsync(location.Id);
             if (locationFromDatabase is null) return Results.NotFound();
 
