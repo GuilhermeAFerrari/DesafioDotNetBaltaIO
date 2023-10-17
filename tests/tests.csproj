@@ -10,7 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.1" />
+    <PackageReference Include="Moq" Version="4.20.69" />
+    <PackageReference Include="NewtonSoft.Json" Version="13.0.3" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -24,6 +27,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\DesafioDotNetBaltaIO.API\DesafioDotNetBaltaIO.API.csproj" />
+    <ProjectReference Include="..\src\DesafioDotNetBaltaIO.Application\DesafioDotNetBaltaIO.Application.csproj" />
+    <ProjectReference Include="..\src\DesafioDotNetBaltaIO.Domain\DesafioDotNetBaltaIO.Domain.csproj" />
   </ItemGroup>
 
 </Project>
