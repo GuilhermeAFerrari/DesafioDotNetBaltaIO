@@ -3,6 +3,7 @@ using DesafioDotNetBaltaIO.Application.DTOs;
 using DesafioDotNetBaltaIO.Application.Interfaces;
 using DesafioDotNetBaltaIO.Domain.Entities;
 using DesafioDotNetBaltaIO.Domain.Interfaces;
+using Microsoft.AspNetCore.Http;
 
 namespace DesafioDotNetBaltaIO.Application.Services
 {
@@ -17,52 +18,104 @@ namespace DesafioDotNetBaltaIO.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<LocationDTO>> GetAsync()
+        public async Task<IResult> GetAsync()
         {
-            var locations = await _locationRepository.GetLocationsAsync();
-            return _mapper.Map<IEnumerable<LocationDTO>>(locations);
+            var result = _mapper
+                .Map<IEnumerable<LocationDTO>>(
+                    await _locationRepository.GetLocationsAsync()
+            );
+
+            return result is IEnumerable<LocationDTO> location
+            ? Results.Ok(location)
+            : Results.NotFound();
         }
 
-        public async Task<LocationDTO> GetByCityAsync(string city)
+        public async Task<IResult> GetByCityAsync(string city)
         {
-            return _mapper
+            var result = _mapper
                 .Map<LocationDTO>(
                     await _locationRepository.GetByCityAsync(city)
                 );
+
+            return result is LocationDTO location
+            ? Results.Ok(location)
+            : Results.NotFound();
         }
 
-        public async Task<LocationDTO> GetByStateAsync(string state)
+        public async Task<IResult> GetByStateAsync(string state)
         {
-            return _mapper
-                .Map<LocationDTO>(
+            var result = _mapper
+                .Map<IEnumerable<LocationDTO>>(
                     await _locationRepository.GetByStateAsync(state)
-                );
+            );
+
+            return result is IEnumerable<LocationDTO> location
+            ? Results.Ok(location)
+            : Results.NotFound();
         }
 
-        public async Task<LocationDTO> GetByIbgeAsync(string ibge)
+        public async Task<IResult> GetByIbgeAsync(string ibge)
         {
-            return _mapper
+            var result = _mapper
                 .Map<LocationDTO>(
                     await _locationRepository.GetByIbgeAsync(ibge)
-                );
+            );
+
+            return result is LocationDTO location
+            ? Results.Ok(location)
+            : Results.NotFound();
         }
 
-        public async Task<int> AddAsync(LocationDTO location)
+        public async Task<IResult> AddAsync(LocationDTO location)
         {
+            var recordExists = await RecordAlreadyExists(location);
+            if (recordExists is not null) return Results.BadRequest(recordExists);
+
             var locationEntity = _mapper.Map<Location>(location);
-            return await _locationRepository.AddAsync(locationEntity);
+            var result = await _locationRepository.AddAsync(locationEntity);
+
+            return result > 0
+            ? Results.CreatedAtRoute("GetLocationByIbge", new { ibge = location.Id }, location)
+            : Results.BadRequest("An error ocurred while saving the record");
         }
 
-        public async Task<int> UpdateAsync(LocationDTO location)
+        public async Task<IResult> UpdateAsync(LocationDTO location)
         {
+            var locationFromDatabase = await _locationRepository.GetByIbgeAsync(location.Id);
+            if (locationFromDatabase is null) return Results.NotFound();
+
+            var recordExists = await RecordAlreadyExists(location);
+            if (recordExists is not null) return Results.BadRequest(recordExists);
+
             var locationEntity = _mapper.Map<Location>(location);
-            return await _locationRepository.UpdateAsync(locationEntity);
+            var result = await _locationRepository.UpdateAsync(locationEntity);
+
+            return result > 0
+            ? Results.NoContent()
+            : Results.BadRequest("An error ocurred while saving the record");
         }
 
-        public async Task<int> RemoveAsync(string? id)
+        public async Task<IResult> RemoveAsync(string id)
         {
             var locationEntity = await _locationRepository.GetByIbgeAsync(id);
-            return await _locationRepository.RemoveAsync(locationEntity);
+            if (locationEntity is null) return Results.NotFound();
+
+            var result = await _locationRepository.RemoveAsync(locationEntity);
+
+            return result > 0
+            ? Results.NoContent()
+            : Results.BadRequest("An error ocurred while saving the record");
+        }
+
+        private async Task<string?> RecordAlreadyExists(LocationDTO location)
+        { 
+            if (await _locationRepository.GetByIbgeAsync(location.Id) is not null)
+                return $"The location with IBGE {location.Id} already exists on database";
+
+            if (await _locationRepository.GetByCityAsync(location.City) is not null)
+                return $"The location with City {location.City} already exists on database";
+
+            return null;
         }
     }
 }
