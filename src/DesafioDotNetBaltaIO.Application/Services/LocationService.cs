@@ -68,6 +68,9 @@ namespace DesafioDotNetBaltaIO.Application.Services
 
         public async Task<IResult> AddAsync(LocationDTO location)
         {
+            var recordExists = await RecordAlreadyExists(location);
+            if (recordExists is not null) return Results.BadRequest(recordExists);
+
             var locationEntity = _mapper.Map<Location>(location);
             var result = await _locationRepository.AddAsync(locationEntity);
 
@@ -80,6 +83,9 @@ namespace DesafioDotNetBaltaIO.Application.Services
         {
             var locationFromDatabase = await _locationRepository.GetByIbgeAsync(location.Id);
             if (locationFromDatabase is null) return Results.NotFound();
+
+            var recordExists = await RecordAlreadyExists(location);
+            if (recordExists is not null) return Results.BadRequest(recordExists);
 
             var locationEntity = _mapper.Map<Location>(location);
             var result = await _locationRepository.UpdateAsync(locationEntity);
@@ -99,6 +105,17 @@ namespace DesafioDotNetBaltaIO.Application.Services
             return result > 0
             ? Results.NoContent()
             : Results.BadRequest("An error ocurred while saving the record");
+        }
+
+        private async Task<string?> RecordAlreadyExists(LocationDTO location)
+        { 
+            if (await _locationRepository.GetByIbgeAsync(location.Id) is not null)
+                return $"The location with IBGE {location.Id} already exists on database";
+
+            if (await _locationRepository.GetByCityAsync(location.City) is not null)
+                return $"The location with City {location.City} already exists on database";
+
+            return null;
         }
     }
 }
