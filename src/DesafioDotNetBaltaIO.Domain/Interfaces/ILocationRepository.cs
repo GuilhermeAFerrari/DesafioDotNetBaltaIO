@@ -6,7 +6,10 @@ namespace DesafioDotNetBaltaIO.Domain.Interfaces
     {
         Task<IEnumerable<Location>> GetLocationsAsync();
         Task<Location?> GetByCityAsync(string city);
-        Task<Location?> GetByStateAsync(string state);
+        Task<IEnumerable<Location>?> GetByStateAsync(string state);
         Task<Location?> GetByIbgeAsync(string ibge);
+        Task<int> AddAsync(Location Location);
+        Task<int> UpdateAsync(Location Location);
+        Task<int> RemoveAsync(Location Location);
     }
 }
