@@ -8,5 +8,6 @@ namespace DesafioDotNetBaltaIO.Infrastructure.Context
         public DesafioDotNetBaltaIOContext(DbContextOptions<DesafioDotNetBaltaIOContext> options) : base(options) { }
 
         public DbSet<Location> Ibge { get; set; }
+        public DbSet<User> Users { get; set; }
     }
 }

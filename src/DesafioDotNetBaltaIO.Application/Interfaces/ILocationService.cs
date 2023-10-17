@@ -1,15 +1,16 @@
 ﻿using DesafioDotNetBaltaIO.Application.DTOs;
+using Microsoft.AspNetCore.Http;
 
 namespace DesafioDotNetBaltaIO.Application.Interfaces
 {
     public interface ILocationService
     {
-        Task<IEnumerable<LocationDTO>> GetLocationsAsync();
-        Task<LocationDTO> GetByCityAsync(int? id);
-        Task<LocationDTO> GetByStateAsync(int? id);
-        Task<LocationDTO> GetByIbgeAsync(int? id);
-        //Task AddAsync(CategoryDTO categoryDTO);
-        //Task UpdateAsync(CategoryDTO categoryDTO);
-        //Task RemoveAsync(int? id);
+        Task<IResult> GetAsync();
+        Task<IResult> GetByCityAsync(string city);
+        Task<IResult> GetByStateAsync(string state);
+        Task<IResult> GetByIbgeAsync(string ibge);
+        Task<IResult> AddAsync(LocationDTO location);
+        Task<IResult> UpdateAsync(LocationDTO location);
+        Task<IResult> RemoveAsync(string id);
     }
 }

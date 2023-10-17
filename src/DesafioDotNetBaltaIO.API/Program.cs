@@ -1,12 +1,20 @@
+using DesafioDotNetBaltaIO.Application.DTOs;
 using DesafioDotNetBaltaIO.Application.Interfaces;
 using DesafioDotNetBaltaIO.Application.Mappings;
 using DesafioDotNetBaltaIO.Application.Services;
-using DesafioDotNetBaltaIO.Domain.Entities;
 using DesafioDotNetBaltaIO.Domain.Interfaces;
 using DesafioDotNetBaltaIO.Infrastructure.Context;
 using DesafioDotNetBaltaIO.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using MiniValidation;
+using DesafioDotNetBaltaIO.Domain.Entities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +25,8 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Minimal API Sample",
-        Description = "",
+        Title = "Desafio DotNet Balta IO",
+        Description = "CRUD de IBGE",
         License = new OpenApiLicense { Name = "MIT", Url = new Uri("https://opensource.org/licenses/MIT") }
     });
 
@@ -48,16 +56,50 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Versioning
+builder.Services.AddApiVersioning(config =>
+{
+    config.DefaultApiVersion = new ApiVersion(1, 0);
+    config.AssumeDefaultVersionWhenUnspecified = true;
+    config.ReportApiVersions = true;
+});
+
 // Dependency Injection
+
+// Repositories
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+// Services
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddTransient<ITokenService, TokenService>();
+builder.Services.AddTransient<IUserService, UserService>();
 
 // Configure AutoMapper
 builder.Services.AddAutoMapper(typeof(LocationMappingProfile));
 
-//TODO: Configure context
+// Configure Context
 builder.Services.AddDbContext<DesafioDotNetBaltaIOContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerDocker")));
+
+// Configure Authentication
+builder.Services.AddAuthentication(x =>
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(builder.Configuration["JWT:Secret"]!)),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -65,11 +107,17 @@ var app = builder.Build();
 
 #region Configure pipelines
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API de IBGE v1");
+    });
 }
 
 app.UseHttpsRedirection();
@@ -85,82 +133,50 @@ app.Run();
 
 void MapActionsLogin(WebApplication app)
 {
-    //app.MapPost("/register", [AllowAnonymous] async (
-    //    UserManager<IdentityUser> userManager,
-    //    IOptions<AppJwtSettings> appJwtSettings,
-    //    RegisterUser registerUser) =>
-    //{
-    //    if (registerUser == null)
-    //        return Results.BadRequest("User is required");
+    app.MapPost("v1/login", [AllowAnonymous] async (
+        UserDTO user, IUserService userService, ITokenService tokenService) =>
+    {
+        if (user is null)
+            return Results.BadRequest("User is required");
 
-    //    if (!MiniValidator.TryValidate(registerUser, out var errors))
-    //        return Results.ValidationProblem(errors);
+        if (!MiniValidator.TryValidate(user, out var errors))
+            return Results.ValidationProblem(errors);
 
-    //    var user = new IdentityUser
-    //    {
-    //        UserName = registerUser.Email,
-    //        Email = registerUser.Email,
-    //        EmailConfirmed = true
-    //    };
+        var userFromDatabase = await userService.GetByEmailAndPasswordAsync(user);
 
-    //    var result = await userManager.CreateAsync(user, registerUser.Password);
+        if (userFromDatabase is null)
+            return Results.BadRequest("User or password wrong");
 
-    //    if (!result.Succeeded)
-    //        return Results.BadRequest(result.Errors);
+        var tokenJwt = tokenService.CreateToken(userFromDatabase);
 
-    //    var jwt = new JwtBuilder()
-    //        .WithUserManager(userManager)
-    //        .WithJwtSettings(appJwtSettings.Value)
-    //        .WithEmail(user.Email)
-    //        .WithJwtClaims()
-    //        .WithUserClaims()
-    //        .WithUserRoles()
-    //        .BuildUserResponse();
+        return Results.Ok(tokenJwt);
+    })
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("UserLogin")
+        .WithTags("User");
 
-    //    return Results.Ok(jwt);
-    //})
-    //    .ProducesValidationProblem()
-    //    .Produces(StatusCodes.Status200OK)
-    //    .Produces(StatusCodes.Status400BadRequest)
-    //    .WithName("UserRegister")
-    //    .WithTags("User");
+    app.MapPost("v1/register", [AllowAnonymous] async (
+        UserDTO user, IUserService userService) =>
+    {
+        if (user is null)
+            return Results.BadRequest("User is required");
 
-    //app.MapPost("/login", [AllowAnonymous] async (
-    //    SignInManager<IdentityUser> signInManager,
-    //    UserManager<IdentityUser> userManager,
-    //    IOptions<AppJwtSettings> appJwtSettings,
-    //    LoginUser loginUser) =>
-    //{
-    //    if (loginUser == null)
-    //        return Results.BadRequest("User is required");
+        if (!MiniValidator.TryValidate(user, out var errors))
+            return Results.ValidationProblem(errors);
 
-    //    if (!MiniValidator.TryValidate(loginUser, out var errors))
-    //        return Results.ValidationProblem(errors);
+        var result = await userService.AddAsync(user);
 
-    //    var result = await signInManager.PasswordSignInAsync(loginUser.Email, loginUser.Password, false, true);
-
-    //    if (result.IsLockedOut)
-    //        return Results.BadRequest("Blocked user");
-
-    //    if (!result.Succeeded)
-    //        return Results.BadRequest("Invalid user or password");
-
-    //    var jwt = new JwtBuilder()
-    //        .WithUserManager(userManager)
-    //        .WithJwtSettings(appJwtSettings.Value)
-    //        .WithEmail(loginUser.Email)
-    //        .WithJwtClaims()
-    //        .WithUserClaims()
-    //        .WithUserRoles()
-    //        .BuildUserResponse();
-
-    //    return Results.Ok(jwt);
-    //})
-    //    .ProducesValidationProblem()
-    //    .Produces(StatusCodes.Status200OK)
-    //    .Produces(StatusCodes.Status400BadRequest)
-    //    .WithName("UserLogin")
-    //    .WithTags("User");
+        return result > 0
+            ? Results.CreatedAtRoute("UserLogin", user)
+            : Results.BadRequest("An error ocurred while saving the user");
+    })
+        .ProducesValidationProblem()
+        .Produces<string>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("UserRegister")
+        .WithTags("User");
 }
 
 #endregion
@@ -169,49 +185,66 @@ void MapActionsLogin(WebApplication app)
 
 void MapActionsLocations(WebApplication app)
 {
+    app.MapGet("/v1/locations", async (ILocationService service) =>
+        await service.GetAsync())
+        .Produces<IEnumerable<LocationDTO>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithName("GetLocations")
+        .WithTags("Location")
+        .RequireAuthorization();
 
-    app.MapGet("/locations", async (ILocationService service) =>
-            await service.GetLocationsAsync())                
-            .Produces<Location>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound)
-            .WithName("GetLocations")
-            .WithTags("Locations");
+    app.MapGet("/v1/locations/city/{city}", async (string city, ILocationService service) =>
+        await service.GetByCityAsync(city))
+        .Produces<LocationDTO>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithName("GetLocationByCity")
+        .WithTags("Location")
+        .RequireAuthorization();
 
-    //app.MapGet("/locations-by-city/{city}", async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapGet("/v1/locations/state/{state}", async (string state, ILocationService service) =>
+        await service.GetByStateAsync(state))
+        .Produces<IEnumerable<LocationDTO>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithName("GetLocationByState")
+        .WithTags("Location")
+        .RequireAuthorization();
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer location
-    //                ? Results.Ok(location)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByCity")
-    //        .WithTags("Locations");
+    app.MapGet("/v1/locations/ibge/{ibge}", async (string ibge, ILocationService service) =>
+         await service.GetByIbgeAsync(ibge))
+        .Produces<LocationDTO>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithName("GetLocationByIbge")
+        .WithTags("Location")
+        .RequireAuthorization();
 
-    //app.MapGet("/locations-by-state/{state}", async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapPost("/v1/location", async (LocationDTO location, ILocationService service) =>
+        await service.AddAsync(location))
+        .ProducesValidationProblem()
+        .Produces<LocationDTO>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PostLocation")
+        .WithTags("Location")
+        .RequireAuthorization();
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer customer
-    //                ? Results.Ok(customer)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByState")
-    //        .WithTags("Locations");
 
-    //app.MapGet("/locations-by-ibge/{ibge}", [AllowAnonymous] async (
-    //        Guid id, MinimalContextDb context) =>
+    app.MapPut("/v1/location", async (ILocationService service, LocationDTO location) =>
+        await service.UpdateAsync(location))
+        .ProducesValidationProblem()
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("PutLocation")
+        .WithTags("Location")
+        .RequireAuthorization();
 
-    //        await context.Customers.FindAsync(id)
-    //            is Customer customer
-    //                ? Results.Ok(customer)
-    //                : Results.NotFound())
-    //        .Produces<Customer>(StatusCodes.Status200OK)
-    //        .Produces(StatusCodes.Status404NotFound)
-    //        .WithName("GetLocationByIbge")
-    //        .WithTags("Customer");
-
+    app.MapDelete("/v1/location/{ibge}", async (string ibge, ILocationService service) =>
+        await service.RemoveAsync(ibge))
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status400BadRequest)
+        .WithName("DeleteLocation")
+        .WithTags("Location")
+        .RequireAuthorization();
 }
+
 #endregion
