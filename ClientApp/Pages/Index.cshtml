@@ -1,0 +1,80 @@
+﻿@page
+@model IndexModel
+@{
+    var statesData = new[]
+    {
+        new { Id = 1, Name = "Acre" },
+        new { Id = 2, Name = "Alagoas" },
+        new { Id = 3, Name = "Amapá" },
+        new { Id = 4, Name = "Amazonas" },
+        new { Id = 5, Name = "Bahia" },
+        new { Id = 6, Name = "Ceará" },
+    };
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <h1>Busque por qualquer cidade ou liste todas as cidades de um estado no Brasil!</h1>
+
+            <h2 class="mt-4">Localize por Cidade:</h2>
+            <form>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="cidadeInput" placeholder="Digite o nome da Cidade">
+                </div>
+                <button type="submit" class="btn btn-primary mt-4">Pesquisar</button>
+            </form>
+        </div>
+
+        <div class="col-md-6">
+            <div class="state-selection-container">
+                <h2 class="mt-4">Selecione um Estado:</h2>
+                <div class="state-list-container">
+                    <div class="scrollable-list">
+                        <ul class="state-list">
+                            @foreach (var state in statesData)
+                            {
+                                <li><a href="#" onclick="searchByState(@state.Id)">@state.Name</a></li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <h3>Resultados da Pesquisa</h3>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="#" class="add-button">+ Adicionar</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th>Cidade</th>
+                        <th>ID</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item"><a class="page-link" href="#">Anterior</a></li>
+                    <li class="page-item"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item"><a class="page-link" href="#">Próxima</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
