@@ -16,7 +16,7 @@ namespace DesafioDotNetBaltaIO.Infrastructure.Repositories
 
         public async Task<User?> GetByEmailAndPasswordAsync(User user)
         {
-            return await _dbContext.Users.FirstOrDefaultAsync(x =>
+            return await _dbContext.User.FirstOrDefaultAsync(x =>
                 x.Email.ToLower() == user.Email.ToLower() &&
                 x.Password == user.Password
             );

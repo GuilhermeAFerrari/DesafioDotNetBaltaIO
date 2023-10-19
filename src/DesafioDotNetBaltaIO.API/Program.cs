@@ -5,15 +5,13 @@ using DesafioDotNetBaltaIO.Application.Services;
 using DesafioDotNetBaltaIO.Domain.Interfaces;
 using DesafioDotNetBaltaIO.Infrastructure.Context;
 using DesafioDotNetBaltaIO.Infrastructure.Repositories;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MiniValidation;
-using DesafioDotNetBaltaIO.Domain.Entities;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -77,9 +75,12 @@ builder.Services.AddTransient<IUserService, UserService>();
 // Configure AutoMapper
 builder.Services.AddAutoMapper(typeof(LocationMappingProfile));
 
-// Configure Context
+// Configure Database
+//var versionMySql = new MySqlServerVersion(new Version(5, 5, 62));
+var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
+
 builder.Services.AddDbContext<DesafioDotNetBaltaIOContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerDocker")));
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 // Configure Authentication
 builder.Services.AddAuthentication(x =>

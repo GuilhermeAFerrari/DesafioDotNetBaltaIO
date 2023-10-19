@@ -13,7 +13,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesafioDotNetBaltaIO.API", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tests", "tests\tests.csproj", "{C8A1D39D-8CAB-4F82-A9A4-25290A47647C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesafioDotNetBaltaIO.Web", "DesafioDotNetBaltaIO.Web\DesafioDotNetBaltaIO.Web.csproj", "{CE4242A0-CAFF-4569-AFB6-3CAEC8E77883}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesafioDotNetBaltaIO.Web", "DesafioDotNetBaltaIO.Web\DesafioDotNetBaltaIO.Web.csproj", "{CE4242A0-CAFF-4569-AFB6-3CAEC8E77883}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Itens de Solução", "Itens de Solução", "{6DC726E4-8C45-4DD9-A487-1E3262F193A8}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\main_challenge-balta-io.yml = .github\workflows\main_challenge-balta-io.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
