@@ -91,9 +91,6 @@ namespace DesafioDotNetBaltaIO.Application.Services
             var locationFromDatabase = await _locationRepository.GetByIbgeAsync(location.Id);
             if (locationFromDatabase is null) return Results.NotFound();
 
-            var recordExists = await RecordAlreadyExists(location);
-            if (recordExists is not null) return Results.BadRequest(recordExists);
-
             var locationEntity = _mapper.Map<Location>(location);
             var result = await _locationRepository.UpdateAsync(locationEntity);
 
