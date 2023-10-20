@@ -19,7 +19,7 @@ namespace tests.DesafioDotNetBaltaIO.API.Tests.Controller
         public LocationJWTTests()
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("TokenString");
+            var key = Encoding.ASCII.GetBytes("Chave_secreta");
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
